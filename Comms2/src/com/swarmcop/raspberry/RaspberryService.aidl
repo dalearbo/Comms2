@@ -1,6 +1,6 @@
-package org.ros.android.jaguar;
+package com.swarmcop.raspberry;
 
-import org.ros.android.jaguar.RaspberryServiceReporter;
+import com.swarmcop.raspberry.RaspberryServiceReporter;
 
 interface RaspberryService {
 	void add(RaspberryServiceReporter reporter);

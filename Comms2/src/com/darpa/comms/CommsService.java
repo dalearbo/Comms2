@@ -4,8 +4,8 @@ package com.darpa.comms;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.ros.android.jaguar.RaspberryServiceManager;
-import org.ros.android.jaguar.RaspberryServiceReporter;
+import com.swarmcop.raspberry.RaspberryServiceManager;
+import com.swarmcop.raspberry.RaspberryServiceReporter;
 
 import android.app.Service;
 import android.content.Intent;
