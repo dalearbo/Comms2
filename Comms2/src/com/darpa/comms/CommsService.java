@@ -4,7 +4,7 @@ package com.darpa.comms;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.swarmcop.raspberry.RaspberryServiceManager;
+import com.swarmcop.raspberry.Raspberry;
 import com.swarmcop.raspberry.RaspberryServiceReporter;
 
 import android.app.Service;
@@ -19,7 +19,7 @@ public class CommsService extends Service{
 	//to Raspberry Pi for transmission
 	
 	byte[] messageReceivedBytes;
-	private RaspberryServiceManager raspberryManager;
+	private Raspberry raspberry;
 	String tag = "RaspberryService";
 		
 
@@ -37,7 +37,10 @@ public class CommsService extends Service{
 										commServiceReporter.reportReceivedMessage(messageReceivedBytes);
 										messageReceivedBytes = null;
 									}
+									Thread.sleep(50);
 								} catch (RemoteException e) {
+									e.printStackTrace();
+								} catch (InterruptedException e) {
 									e.printStackTrace();
 								} 
 							}
@@ -55,18 +58,7 @@ public class CommsService extends Service{
 			super.onCreate();
 			Log.d(tag,"CommService onCreate");
 			
-			
-			raspberryManager = new RaspberryServiceManager(this, new RaspberryServiceManager.OnConnectedListener() {
-	    		@Override public void onConnected() {
-	    			Log.d(tag, "raspberryService connected - adding reporter");
-	    			raspberryManager.add(raspberryServiceReporter);
-	    			
-	    		}
-	    		@Override public void onDisconnected() {
-	    			Log.d(tag, "raspberryService disconnected - removing reporter");
-	    			raspberryManager.remove(raspberryServiceReporter);
-	    		}
-	    	});
+			raspberry = new Raspberry();
 			
 		}
 		
@@ -88,6 +80,11 @@ public class CommsService extends Service{
 
 		@Override
 		public void onDestroy() {
+			try {  //Tell server to shut down
+				commsBinder.sendMessage(new String("Shut Down Server").getBytes());
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
 			if (serviceThread != null) {
 				serviceThread.interrupt();
 				serviceThread = null;
@@ -126,11 +123,15 @@ public class CommsService extends Service{
 			@Override
 			public void sendMessage(byte[] outMessageBytes) throws RemoteException {
 				//Encrypt message and send
+				Log.d("Comms","Message to Send");
 				String rawMessage = new String(outMessageBytes);
 				try {
-					String encryptedMessage = AES256.encrypt(rawMessage.toCharArray());
+					//String encryptedMessage = "0"+AES256.encrypt(rawMessage.toCharArray());		//add 0 to format for socket
+					//TODO: Temp
+					String encryptedMessage = "0"+rawMessage;
 					byte[] outMessageToSocket = encryptedMessage.getBytes();
-					raspberryManager.sendMessageToSocket(outMessageToSocket);
+					Log.d("Comms","Message Prepared: "+new String(outMessageToSocket));
+					raspberry.sendMessageToSocket(outMessageToSocket);
 					
 				} catch (Exception e) {
 					e.printStackTrace();

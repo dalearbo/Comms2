@@ -34,7 +34,8 @@ public class AES256 {
     }
 
     public static String encrypt(char[] plaintext) throws Exception {
-        byte[] saltBytes = salt.getBytes();
+    	salt = getSalt();
+    	byte[] saltBytes = salt.getBytes();
 
         SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         PBEKeySpec spec = new PBEKeySpec(plaintext, saltBytes, iterations, keySize);

@@ -15,29 +15,47 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
-public class RaspberryMain extends Service{
+public class Raspberry extends Service{
 	
 	private Socket socket;
-	private static final int SERVERPORTSEND = 5005;			//Port for sending message
-	private static final int SERVERPORTRECEIVE = 5006;			//Use a separate port for receiving message
-	private static final String SERVER_IP = "192.168.0.75";
+	private static final int SERVERPORTRECEIVE = 5005;			//Use a separate port for receiving message
+	private static final int SERVERPORTSEND = 5004;			//Port for sending message
+	private static final String SERVER_IP = "192.168.0.143";
 	private DataOutputStream outChannel;
 	private String tag = "RaspSocket";
 	private Thread clientThread0;
 	private Thread clientThread1;
     List<RaspberryServiceReporter> targets;
 	
-	@Override
-	public IBinder onBind(Intent arg0) {
-		Log.d(tag, "Ros/Socket bind");
+	
+	public Raspberry(){
+		Log.d(tag, "Ros/Socket Initialize");
 		clientThread0 = new ClientThread(SERVERPORTSEND);
 		clientThread1 = new ClientThread(SERVERPORTRECEIVE);
 		clientThread0.start();
 		clientThread1.start();
-		return socketBinder;
 	}
 	
+	
 	private List<RaspberryServiceReporter> reporters = new ArrayList<RaspberryServiceReporter>();
+	
+	
+	public void sendMessageToSocket(byte[] outMessageToSocket) throws RemoteException {
+		try{
+			if (socket!=null && !socket.isClosed()){
+				outChannel.write(outMessageToSocket);
+				outChannel.flush();
+			} else{
+				Log.d(tag,"Socket is closed");
+			}
+		}catch(UnknownHostException e){
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e){
+			e.printStackTrace();
+		}	
+	}
 	
 	
 	 public RaspberryService.Stub socketBinder = new RaspberryService.Stub() {
@@ -78,6 +96,7 @@ public class RaspberryMain extends Service{
 	class ClientThread extends Thread{
 
 		private final int SERVERPORT;
+		private MessageReceiveThread receiveThread;
 		
 		public ClientThread(int socketPort){
 			this.SERVERPORT = socketPort;
@@ -98,8 +117,11 @@ public class RaspberryMain extends Service{
 						if(SERVERPORT==SERVERPORTSEND){							//outChannel is set up on the send port only
 							outChannel = new DataOutputStream(socket.getOutputStream());
 						} else {	//SERVERPORT==SERVERPORTRECEIVE
-							MessageReceiveThread receiveThread = new MessageReceiveThread(socket);	//only need comm port for receive sockets
-							new Thread(receiveThread).start();
+							if(receiveThread==null){
+								receiveThread = new MessageReceiveThread(socket);	//only need comm port for receive sockets
+								new Thread(receiveThread).start();
+							}
+							
 						} 
 							
 						Log.d(tag,"Socket "+SERVERPORT+" Opened");
@@ -179,5 +201,12 @@ public class RaspberryMain extends Service{
 	        Log.d(tag, "Socket RaspberryPi onCreate");
 
 	    }
+
+		@Override
+		public IBinder onBind(Intent intent) {
+			return null;
+		}
+		
+		
 
 }

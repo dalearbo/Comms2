@@ -2,4 +2,6 @@
 
     <string name="app_name">Comms2</string>
 
+    <string name="remote_service_permission">Remote Service Permission</string>
+
 </resources>

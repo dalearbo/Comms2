@@ -1,5 +1,5 @@
 package com.swarmcop.raspberry;
-
+/*
 
 import android.app.Activity;
 import android.app.Service;
@@ -32,9 +32,7 @@ public class RaspberryServiceManager {
 		this.onConnectedListener = onConnectedListener;
 		service.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
 	}
-
 	
-
 	
 	public synchronized void disconnect() {
 		disconnected = true;
@@ -87,4 +85,4 @@ public class RaspberryServiceManager {
 	}
 	
 	
-}
+}*/
