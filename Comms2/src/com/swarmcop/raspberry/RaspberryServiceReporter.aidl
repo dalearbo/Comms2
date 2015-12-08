@@ -1,5 +1,5 @@
 package com.swarmcop.raspberry;
 
 interface RaspberryServiceReporter {
-	void receivedMessageFromSocket(in byte[] inMessageFromSocket);
+	void receivedMessageFromSocket(in String inMessageFromSocket);
 }

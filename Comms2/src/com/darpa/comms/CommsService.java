@@ -18,7 +18,7 @@ public class CommsService extends Service{
 	//This app acts to encrypt inMessages and outMessages and send them
 	//to Raspberry Pi for transmission
 	
-	byte[] messageReceivedBytes;
+	static byte[] messageReceivedBytes;
 	private Raspberry raspberry;
 	String tag = "RaspberryService";
 		
@@ -34,6 +34,7 @@ public class CommsService extends Service{
 							for(CommServiceReporter commServiceReporter : targets) {
 								try {
 									if(messageReceivedBytes!=null){
+										//Log.d("comm","Reporting message");
 										commServiceReporter.reportReceivedMessage(messageReceivedBytes);
 										messageReceivedBytes = null;
 									}
@@ -51,6 +52,12 @@ public class CommsService extends Service{
 			}
 		}
 		
+		public static void updateMessageVariable(String message){
+			messageReceivedBytes = message.getBytes();
+		}
+		
+		
+		
 		private ServiceThread serviceThread;
 		
 		@Override
@@ -59,23 +66,7 @@ public class CommsService extends Service{
 			Log.d(tag,"CommService onCreate");
 			
 			raspberry = new Raspberry();
-			
 		}
-		
-		private RaspberryServiceReporter raspberryServiceReporter = new RaspberryServiceReporter.Stub() {
-
-			@Override
-			public void receivedMessageFromSocket(byte[] inMessageBytesFromSocket) throws RemoteException {
-				//Decrypt message, convert to byte array for transmission to UVADE
-				String encryptedMessage = new String(inMessageBytesFromSocket);
-				try {
-					String decryptedMessageBytes = AES256.decrypt(encryptedMessage.toCharArray());
-					messageReceivedBytes = decryptedMessageBytes.getBytes();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		};
 		
 
 		@Override
@@ -123,21 +114,16 @@ public class CommsService extends Service{
 			@Override
 			public void sendMessage(byte[] outMessageBytes) throws RemoteException {
 				//Encrypt message and send
-				Log.d("Comms","Message to Send");
+				//testMessageContents(outMessageBytes);
 				String rawMessage = new String(outMessageBytes);
 				try {
 					//String encryptedMessage = "0"+AES256.encrypt(rawMessage.toCharArray());		//add 0 to format for socket
-					//TODO: Temp
 					String encryptedMessage = "0"+rawMessage;
-					byte[] outMessageToSocket = encryptedMessage.getBytes();
-					Log.d("Comms","Message Prepared: "+new String(outMessageToSocket));
-					raspberry.sendMessageToSocket(outMessageToSocket);
+					raspberry.sendMessage(encryptedMessage);
 					
 				} catch (Exception e) {
 					e.printStackTrace();
-				}
-				
-				
+				}	
 				
 			}
 	

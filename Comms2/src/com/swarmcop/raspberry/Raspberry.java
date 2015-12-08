@@ -9,10 +9,13 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.darpa.comms.CommsService;
+
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.Log;
 
 public class Raspberry extends Service{
@@ -40,24 +43,6 @@ public class Raspberry extends Service{
 	private List<RaspberryServiceReporter> reporters = new ArrayList<RaspberryServiceReporter>();
 	
 	
-	public void sendMessageToSocket(byte[] outMessageToSocket) throws RemoteException {
-		try{
-			if (socket!=null && !socket.isClosed()){
-				outChannel.write(outMessageToSocket);
-				outChannel.flush();
-			} else{
-				Log.d(tag,"Socket is closed");
-			}
-		}catch(UnknownHostException e){
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (Exception e){
-			e.printStackTrace();
-		}	
-	}
-	
-	
 	 public RaspberryService.Stub socketBinder = new RaspberryService.Stub() {
 	        @Override public void add(RaspberryServiceReporter reporter) throws RemoteException {
 	            synchronized (reporters) {
@@ -73,22 +58,7 @@ public class Raspberry extends Service{
 
 			@Override
 			public void sendMessageToSocket(byte[] outMessageToSocket) throws RemoteException {
-				try{
-					if (socket!=null && !socket.isClosed()){
-	    				//TODO May need to find another way to designate EOL marker
-						//commandString.concat("\0");	//needed as an end of line marker
-	    				outChannel.write(outMessageToSocket);
-	    				outChannel.flush();
-	    			} else{
-	    				Log.d(tag,"Socket is closed");
-	    			}
-				}catch(UnknownHostException e){
-	    			e.printStackTrace();
-	    		} catch (IOException e) {
-	    			e.printStackTrace();
-	    		} catch (Exception e){
-	    			e.printStackTrace();
-	    		}	
+				//UNUSED
 			}
 	    };
 	 
@@ -144,7 +114,6 @@ public class Raspberry extends Service{
 			this.clientSocket = clientSocket;
 			try{
 				this.input = new DataInputStream(clientSocket.getInputStream());
-				
 				} catch(IOException e){
 					e.printStackTrace();
 				}
@@ -152,21 +121,24 @@ public class Raspberry extends Service{
 		
 		@Override
 		public void run() {
+			String messageString = null;
 			while(!Thread.currentThread().isInterrupted()){
 				try{
-					byte[] inMessageBytes = new byte[10000];
+					byte[] inMessageBytes = new byte[256];
 					if(!clientSocket.isClosed()){
+						//Log.d(tag,"Attempting to read message");
 		        		 input.read(inMessageBytes);
-		        		 synchronized (reporters) {
-		     					targets = new ArrayList<RaspberryServiceReporter>(reporters);
-		     				}
-		     				for(RaspberryServiceReporter raspberryReporter : targets) {
-		     					try {
-		     						raspberryReporter.receivedMessageFromSocket(inMessageBytes);
-		     					} catch (RemoteException e) {
-		     						Log.e(tag,"report",e);
-		     					}
-		        		 }
+		        		 if(messageString!=null)
+		        			 messageString = messageString.concat(new String(inMessageBytes)).trim();
+		        		 else
+		        			 messageString=new String(inMessageBytes).trim();
+		        		 //Log.d(tag, "Read message: "+messageString);
+		        		 if(messageString!=null){
+			        		 if(messageString.endsWith("end")){
+			        			CommsService.updateMessageVariable(messageString);
+		     					Log.d(tag, "Received Message: "+messageString);	
+			        			 messageString=null;
+  						}}
 		        	 }
 				
 				} catch(IOException e){
@@ -179,7 +151,6 @@ public class Raspberry extends Service{
 			
 		}
 	}
-	
 	
 	 @Override
 	    public void onDestroy() {
@@ -205,6 +176,34 @@ public class Raspberry extends Service{
 		@Override
 		public IBinder onBind(Intent intent) {
 			return null;
+		}
+
+		long time;
+		
+		public void sendMessage(String encryptedMessage) {
+			try{
+				//time variable is used to throttle how fast new messages are transmitted
+				if (socket!=null && !socket.isClosed()){
+					if(System.currentTimeMillis()>(time+2000)){
+						encryptedMessage=encryptedMessage.trim();
+						Log.d(tag, encryptedMessage);
+						outChannel.writeBytes(encryptedMessage);
+	    				outChannel.flush();
+	    				time=System.currentTimeMillis();
+					}
+					}
+				else{
+					Log.d(tag,"Socket is closed");
+				}
+				
+			}catch(UnknownHostException e){
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e){
+				e.printStackTrace();
+			}	
+			
 		}
 		
 		
